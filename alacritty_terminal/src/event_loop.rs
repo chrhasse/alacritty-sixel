@@ -100,18 +100,23 @@ where
         true
     }
 
+    /// Read and parse PTY output.
+    ///
+    /// Returns `true` if reading stopped early because of [`MAX_LOCKED_READ`], in which case
+    /// there might still be unread data available in the PTY.
     #[inline]
     fn pty_read<X>(
         &mut self,
         state: &mut State,
         buf: &mut [u8],
         mut writer: Option<&mut X>,
-    ) -> io::Result<()>
+    ) -> io::Result<bool>
     where
         X: Write,
     {
         let mut unprocessed = 0;
         let mut processed = 0;
+        let mut interrupted = false;
 
         // Reserve the next terminal lock for PTY reading.
         let _terminal_lease = Some(self.terminal.lease());
@@ -160,6 +165,7 @@ where
 
             // Assure we're not blocking the terminal too long unnecessarily.
             if processed >= MAX_LOCKED_READ {
+                interrupted = true;
                 break;
             }
         }
@@ -169,7 +175,7 @@ where
             self.event_proxy.send_event(Event::Wakeup);
         }
 
-        Ok(())
+        Ok(interrupted)
     }
 
     #[inline]
@@ -282,20 +288,33 @@ where
                             }
 
                             if event.readable {
-                                if let Err(err) = self.pty_read(&mut state, &mut buf, pipe.as_mut())
-                                {
-                                    // On Linux, a `read` on the master side of a PTY can fail
-                                    // with `EIO` if the client side hangs up.  In that case,
-                                    // just loop back round for the inevitable `Exited` event.
-                                    // This sucks, but checking the process is either racy or
-                                    // blocking.
-                                    #[cfg(target_os = "linux")]
-                                    if err.raw_os_error() == Some(libc::EIO) {
-                                        continue;
-                                    }
+                                match self.pty_read(&mut state, &mut buf, pipe.as_mut()) {
+                                    // Reading was interrupted with data potentially left in
+                                    // the PTY. On Windows readiness is only signaled when new
+                                    // data arrives into an empty pipe, so re-register to get
+                                    // notified about the remaining data. Otherwise it would
+                                    // only be read after the next PTY output (e.g. keypress).
+                                    #[cfg(windows)]
+                                    Ok(true) => {
+                                        self.pty
+                                            .reregister(&self.poll, interest, poll_opts)
+                                            .unwrap();
+                                    },
+                                    Ok(_) => (),
+                                    Err(err) => {
+                                        // On Linux, a `read` on the master side of a PTY can
+                                        // fail with `EIO` if the client side hangs up.  In that
+                                        // case, just loop back round for the inevitable
+                                        // `Exited` event. This sucks, but checking the process
+                                        // is either racy or blocking.
+                                        #[cfg(target_os = "linux")]
+                                        if err.raw_os_error() == Some(libc::EIO) {
+                                            continue;
+                                        }
 
-                                    error!("Error reading from PTY in event loop: {}", err);
-                                    break 'event_loop;
+                                        error!("Error reading from PTY in event loop: {}", err);
+                                        break 'event_loop;
+                                    },
                                 }
                             }
 

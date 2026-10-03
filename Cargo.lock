@@ -1862,7 +1862,7 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 [[package]]
 name = "utf8parse"
 version = "0.2.1"
-source = "git+https://github.com/ayosec/vte-graphics.git?branch=graphics#e876405dadee1c1104761eee89e31b9f34de8941"
+source = "git+https://github.com/chrhasse/vte-sixel.git#0f9651fb02056dec3152c3a6b16d9f69207e09cb"
 
 [[package]]
 name = "version_check"
@@ -1893,20 +1893,20 @@ dependencies = [
 [[package]]
 name = "vte"
 version = "0.13.0"
-source = "git+https://github.com/ayosec/vte-graphics.git?branch=graphics#e876405dadee1c1104761eee89e31b9f34de8941"
+source = "git+https://github.com/chrhasse/vte-sixel.git#0f9651fb02056dec3152c3a6b16d9f69207e09cb"
 dependencies = [
  "bitflags 2.4.1",
  "cursor-icon",
  "log",
  "serde",
- "utf8parse 0.2.1 (git+https://github.com/ayosec/vte-graphics.git?branch=graphics)",
+ "utf8parse 0.2.1 (git+https://github.com/chrhasse/vte-sixel.git)",
  "vte_generate_state_changes",
 ]
 
 [[package]]
 name = "vte_generate_state_changes"
 version = "0.1.1"
-source = "git+https://github.com/ayosec/vte-graphics.git?branch=graphics#e876405dadee1c1104761eee89e31b9f34de8941"
+source = "git+https://github.com/chrhasse/vte-sixel.git#0f9651fb02056dec3152c3a6b16d9f69207e09cb"
 dependencies = [
  "proc-macro2",
  "quote",
