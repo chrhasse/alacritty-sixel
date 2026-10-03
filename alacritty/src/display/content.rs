@@ -310,7 +310,7 @@ impl RenderableCell {
                 .collect::<_>()
         });
 
-        let extra = (zerowidth.is_some() || hyperlink.is_some()).then(|| {
+        let extra = (zerowidth.is_some() || hyperlink.is_some() || graphics.is_some()).then(|| {
             Box::new(RenderableCellExtra {
                 zerowidth: zerowidth.map(|zerowidth| zerowidth.to_vec()),
                 hyperlink,
